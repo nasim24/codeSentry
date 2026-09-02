@@ -1,0 +1,206 @@
+# ─────────────────────────────────────────────────────────────────
+# CodeSentryAI — example review rules
+#
+# Copy this file to review-rules.yaml and edit it for your project:
+#
+#     cp review-rules.example.yaml review-rules.yaml
+#
+# review-rules.yaml is gitignored, so your project's conventions stay
+# private. This example is used automatically until you create it.
+#
+# The rules below are deliberately generic — they demonstrate the format
+# rather than prescribing an architecture. Replace them with the
+# conventions your team actually enforces in review.
+# ─────────────────────────────────────────────────────────────────
+
+project:
+  name: "My Project"
+  type: "nextjs"          # nextjs | react | node | generic
+  version: "16"
+
+
+# ─────────────────────────────────────────────────────────────────
+# LAYER 1 — YOUR CUSTOM RULES (checked first, highest priority)
+#
+# Each rule needs an id, severity and message. Everything else is
+# optional. Severity: critical | high | medium | low
+#
+#   detect       list of substrings; if any appears in an added line,
+#                the rule fires
+#   detect_path  fires when the changed file path contains this string
+#   exception     path fragment (or list) where the rule does not apply
+#   message      what the AI tells the developer
+#   suggestion   example of the correct pattern, shown as a code block
+# ─────────────────────────────────────────────────────────────────
+
+custom_rules:
+
+  # ── Example: centralise your HTTP client ──────────────────────
+  # Most teams wrap fetch/axios once to attach auth headers and
+  # normalise errors, then require everyone to use that wrapper.
+  - id: "use-http-client"
+    severity: "high"
+    category: "architecture"
+    description: "Use the shared HTTP client instead of raw fetch()"
+    detect:
+      - "fetch('"
+      - 'fetch("'
+      - "fetch(`"
+    exception: "lib/http.ts"
+    message: >
+      Raw fetch() calls bypass shared auth headers, retry logic and error
+      normalisation. Use the configured client in lib/http.ts instead.
+    suggestion: |
+      import { http } from '@/lib/http';
+      const response = await http.get('/api/orders');
+
+  # ── Example: keep secrets out of the client bundle ────────────
+  - id: "no-secrets-in-client"
+    severity: "critical"
+    category: "security"
+    description: "Server-only secrets must not be read in client components"
+    detect:
+      - "process.env.API_SECRET"
+      - "process.env.DATABASE_URL"
+      - "process.env.PRIVATE_KEY"
+    message: >
+      This value is a server-side secret. Reading it in a client component
+      ships it to the browser. Move the access into a server component,
+      route handler, or server action.
+
+  # ── Example: a path-scoped rule ───────────────────────────────
+  - id: "no-edits-to-generated-code"
+    severity: "critical"
+    category: "maintainability"
+    description: "Generated files must not be edited by hand"
+    detect_path: "generated/"
+    message: >
+      Files under generated/ are produced by a code generator and will be
+      overwritten. Change the generator input or schema instead.
+
+  # ── Example: type safety ──────────────────────────────────────
+  - id: "no-any-type"
+    severity: "medium"
+    category: "types"
+    description: "Avoid the any type"
+    detect:
+      - ": any"
+      - "as any"
+      - "<any>"
+    message: >
+      Using `any` disables type checking for this value. Prefer a specific
+      type, a generic, or `unknown` with a narrowing check.
+    suggestion: |
+      // Instead of:
+      function handle(payload: any) {}
+      // Prefer:
+      function handle(payload: unknown) {
+        if (typeof payload === 'object' && payload !== null) { /* ... */ }
+      }
+
+
+# ─────────────────────────────────────────────────────────────────
+# LAYER 2 — FRAMEWORK BEST PRACTICES
+# Toggle the checks that apply to your stack.
+# ─────────────────────────────────────────────────────────────────
+
+nextjs_rules:
+  check_image_optimization:       true   # next/image instead of <img>
+  check_missing_error_boundaries: true
+  check_missing_loading_states:   true
+  check_useeffect_deps:           true
+  check_missing_keys_in_lists:    true
+  check_server_client_boundary:   true
+  check_metadata_api:             true
+
+
+# ─────────────────────────────────────────────────────────────────
+# LAYER 3 — GENERAL CODE QUALITY
+# Keep the linter's job with the linter. Only ask the AI for things a
+# linter cannot judge, or reviews fill up with noise nobody reads.
+# ─────────────────────────────────────────────────────────────────
+
+quality_rules:
+  check_security:                true   # XSS, exposed secrets, injection
+  check_console_logs:            true
+  check_missing_error_handling:  true   # unhandled async failures
+  check_logic_errors:            true   # genuine bugs only
+  check_unused_imports:          false  # ESLint already does this
+  check_formatting:              false  # Prettier already does this
+  check_import_order:            false  # ESLint already does this
+  check_semicolons:              false  # Prettier already does this
+
+
+# ─────────────────────────────────────────────────────────────────
+# FILES — what to review, and in what order
+# ─────────────────────────────────────────────────────────────────
+
+files:
+
+  # Never worth reviewing — skipping these saves AI time and money.
+  skip:
+    - "**/*.lock"
+    - "**/package-lock.json"
+    - "**/yarn.lock"
+    - "**/pnpm-lock.yaml"
+    - "**/node_modules/**"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/.next/**"
+    - "**/public/**"
+    - "**/*.min.js"
+    - "**/*.min.css"
+    - "**/*.snap"
+    - "**/*.map"
+    - "**/vendor/**"
+
+  # Reviewed first — business logic, where real bugs live.
+  priority:
+    - "src/app/api/**"
+    - "src/lib/**"
+    - "src/hooks/**"
+    - "src/services/**"
+    - "src/store/**"
+
+  # Reviewed after the priority files.
+  normal:
+    - "src/components/**"
+    - "src/config/**"
+    - "src/context/**"
+
+
+# ─────────────────────────────────────────────────────────────────
+# NOISE FILTER — issues the AI must never raise
+#
+# Anything your formatter or linter already enforces belongs here.
+# A review that nitpicks style gets ignored, and then the real
+# findings get ignored with it.
+# ─────────────────────────────────────────────────────────────────
+
+ignore:
+  - "missing semicolon"
+  - "trailing whitespace"
+  - "import order"
+  - "prefer const over let"
+  - "line too long"
+  - "unused variable"
+  - "missing return type"
+  - "prefer arrow function"
+  - "object destructuring"
+  - "template literal"
+  - "unnecessary else"
+  - "cognitive complexity"
+  - "too many parameters"
+
+
+# ─────────────────────────────────────────────────────────────────
+# REVIEW BEHAVIOUR
+# ─────────────────────────────────────────────────────────────────
+
+settings:
+  max_files_per_review:        50
+  max_issues_per_file:         5
+  min_severity_to_comment:     "medium"   # low-severity issues stay in the dashboard
+  skip_if_only_whitespace:     true
+  skip_if_only_comments_changed: true
+  chunk_size:                  8          # files per AI request

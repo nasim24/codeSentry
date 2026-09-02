@@ -1,0 +1,41 @@
+# Secrets — NEVER commit
+.env
+.env.local
+.env.production
+.env.*
+
+# ...but the example templates MUST ship — they are the setup docs.
+!.env.example
+!dashboard/.env.example
+
+# Local database
+reviewer.db
+*.db
+
+# Your own review rules stay local — ship review-rules.example.yaml instead
+# so project conventions never leak into the repo.
+review-rules.yaml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+venv/
+env/
+.venv/
+
+# NextJS
+dashboard/.next/
+dashboard/tsconfig.tsbuildinfo
+*.tsbuildinfo
+dashboard/node_modules/
+dashboard/out/
+dashboard/.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ngrok
+.ngrok/

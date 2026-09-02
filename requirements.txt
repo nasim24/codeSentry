@@ -1,0 +1,9 @@
+# Core
+flask==3.0.3
+requests==2.31.0
+python-dotenv==1.0.1
+PyYAML==6.0.2
+
+# Scheduling (morning digest) + webhook tunnel
+apscheduler==3.10.4
+pyngrok==7.2.0

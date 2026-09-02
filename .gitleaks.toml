@@ -1,0 +1,26 @@
+# Secret scanning config for CodeSentryAI.
+# Run locally:  gitleaks detect --config .gitleaks.toml
+title = "CodeSentryAI gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "gitlab-pat"
+description = "GitLab personal/project access token"
+regex = '''glpat-[A-Za-z0-9_\-]{20,}'''
+tags = ["gitlab", "token"]
+
+[[rules]]
+id = "google-chat-webhook"
+description = "Google Chat incoming webhook URL (contains key and token)"
+regex = '''chat\.googleapis\.com/v1/spaces/[^\s"']+'''
+tags = ["google", "webhook"]
+
+[allowlist]
+description = "Placeholders in example config are not real secrets"
+paths = [
+  '''\.env\.example$''',
+  '''dashboard/\.env\.example$''',
+  '''README\.md$''',
+]
